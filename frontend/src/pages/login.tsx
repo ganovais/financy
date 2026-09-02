@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, UserRoundPlus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { PasswordInput } from "@/components/password-input";
@@ -17,6 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Input, InputAdornment, InputRoot } from "@/components/ui/input";
 import { TextLink } from "@/components/ui/text-link";
+import { useLogin } from "@/hooks/use-auth-mutations";
+import { useAuth } from "@/lib/auth-context";
 
 const loginSchema = z.object({
   email: z.email("Informe um e-mail válido"),
@@ -28,14 +31,20 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
+  const login = useLogin();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", remember: false },
   });
 
-  async function handleLogin() {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    navigate("/dashboard");
+  function handleLogin({ remember, ...data }: LoginFormValues) {
+    login.mutate(data, {
+      onSuccess: (result) => {
+        signIn(result.login, { remember });
+        navigate("/", { replace: true });
+      },
+    });
   }
 
   return (
@@ -105,10 +114,16 @@ export default function LoginPage() {
                   </label>
                 )}
               />
-              <TextLink>Recuperar senha</TextLink>
+              <TextLink
+                onClick={() =>
+                  toast.info("A recuperação de senha estará disponível em breve")
+                }
+              >
+                Recuperar senha
+              </TextLink>
             </div>
           </div>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button type="submit" disabled={login.isPending}>
             Entrar
           </Button>
           <div className="flex items-center gap-3">

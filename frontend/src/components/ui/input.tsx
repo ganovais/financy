@@ -22,7 +22,7 @@ function FieldLabel({ className, ...props }: React.ComponentProps<"label">) {
     <label
       data-slot="field-label"
       className={cn(
-        "text-sm leading-5 font-medium text-gray-700 transition-colors group-focus-within/field:text-brand group-data-[invalid]/field:text-danger",
+        "text-sm leading-5 font-medium text-gray-700 transition-colors group-focus-within/field:text-brand",
         className
       )}
       {...props}
@@ -34,7 +34,10 @@ function FieldHelper({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="field-helper"
-      className={cn("text-xs leading-4 text-gray-500", className)}
+      className={cn(
+        "text-xs leading-4 text-gray-500 group-data-[invalid]/field:text-danger",
+        className
+      )}
       {...props}
     />
   )
@@ -45,7 +48,7 @@ function InputRoot({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="input-root"
       className={cn(
-        "flex h-[50px] w-full items-center gap-3 rounded-lg border border-input bg-white px-[13px] transition-opacity has-[input:disabled]:opacity-50",
+        "flex h-[50px] w-full items-center gap-3 rounded-lg border border-input bg-white px-[13px] transition-[border-color,opacity] group-data-[invalid]/field:border-danger has-[input:disabled]:opacity-50",
         className
       )}
       {...props}

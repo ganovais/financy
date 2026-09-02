@@ -6,15 +6,29 @@ import { buildContext, type Context } from "./graphql/context.ts";
 import { resolvers } from "./graphql/resolvers.ts";
 import { typeDefs } from "./graphql/schema.ts";
 
+const allowedOrigins = env.CORS_ORIGIN.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const fallbackOrigin = allowedOrigins[0] ?? "http://localhost:5173";
+const localOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
+function isAllowedOrigin(origin: string) {
+  if (allowedOrigins.includes(origin)) return true;
+  return env.NODE_ENV !== "production" && localOrigin.test(origin);
+}
+
 const yoga = createYoga({
   schema: createSchema<Context>({ typeDefs, resolvers }),
   context: buildContext,
   graphqlEndpoint: "/graphql",
   landingPage: false,
-  cors: {
-    origin: env.CORS_ORIGIN.split(","),
-    credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
+  cors: (request) => {
+    const origin = request.headers.get("origin");
+    return {
+      origin: origin && isAllowedOrigin(origin) ? origin : fallbackOrigin,
+      credentials: true,
+      methods: ["GET", "POST", "OPTIONS"],
+    };
   },
 });
 

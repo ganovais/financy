@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router";
 
 import { Logo } from "@/components/logo";
+import { useUser } from "@/lib/auth-context";
 import { getInitials } from "@/lib/format";
-import { mockUser } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -13,13 +13,14 @@ const navItems = [
 
 export function Navbar() {
   const { pathname } = useLocation();
+  const user = useUser();
 
   return (
     <header className="border-b border-border bg-white">
       <div className="px-12">
         <div className="relative mx-auto flex h-[68px] w-full max-w-[1280px] items-center justify-between">
           <Link
-            to="/dashboard"
+            to="/"
             aria-label="Ir para o dashboard"
             className="outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/50"
           >
@@ -30,7 +31,10 @@ export function Navbar() {
             className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-5"
           >
             {navItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const isActive =
+                pathname === "/"
+                  ? item.href === "/dashboard"
+                  : pathname.startsWith(item.href);
 
               return (
                 <Link
@@ -54,7 +58,7 @@ export function Navbar() {
             aria-label="Ir para o perfil"
             className="flex size-9 items-center justify-center rounded-full bg-gray-300 text-sm font-medium text-gray-800 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
           >
-            {getInitials(mockUser.name)}
+            {getInitials(user.name)}
           </Link>
         </div>
       </div>

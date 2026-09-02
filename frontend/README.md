@@ -1,32 +1,40 @@
-# React + TypeScript + Vite
+# Financy — Front-end
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplicação React para gerenciamento de finanças pessoais, consumindo a API GraphQL do diretório `../backend`.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19 + Vite 8 + TypeScript**
+- **GraphQL** via `graphql-request`, com operações tipadas geradas pelo **GraphQL Code Generator** a partir do schema do back-end
+- **TanStack Query** para cache, invalidação e estados de carregamento
+- **React Router 8**, **Tailwind CSS 4**, componentes shadcn adaptados, **React Hook Form + Zod**
 
-## React Compiler
+## Como rodar
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+pnpm install
+cp .env.example .env   # VITE_BACKEND_URL aponta para a API (padrão http://localhost:4000)
+pnpm dev               # http://localhost:5173
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+A API precisa estar no ar (`pnpm dev` em `../backend`). Com o seed do back-end, entre com `conta@teste.com` / `12345678`.
+
+## Variáveis de ambiente
+
+| Chave              | Descrição                                   |
+| ------------------ | ------------------------------------------- |
+| `VITE_BACKEND_URL` | Origem da API, ex.: `http://localhost:4000` |
+
+## Rotas
+
+- `/` — tela de login quando deslogado, dashboard quando logado
+- `/login`, `/cadastro` — autenticação
+- `/dashboard`, `/transacoes`, `/categorias`, `/perfil` — área autenticada
+
+## Tipagem das operações GraphQL
+
+As operações ficam em `src/lib/graphql/operations.ts` e os tipos gerados em `src/gql/`. Depois de alterar uma operação (ou o schema do back-end), rode:
+
+```bash
+pnpm codegen
+```

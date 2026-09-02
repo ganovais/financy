@@ -13,7 +13,7 @@ import { CategoryIconBox, categoryIconMap } from "@/components/category-icon";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Tag } from "@/components/ui/tag";
-import { useFinance, useFinanceDispatch } from "@/lib/finance-context";
+import { useCategories, useDeleteCategory } from "@/hooks/use-categories";
 import type { Category } from "@/lib/types";
 
 function StatCard({
@@ -44,15 +44,15 @@ function StatCard({
 
 const CategoryCard = React.memo(function CategoryCard({
   category,
-  itemCount,
   onEdit,
   onDelete,
 }: {
   category: Category;
-  itemCount: number;
   onEdit: (category: Category) => void;
   onDelete: (id: string) => void;
 }) {
+  const { transactionCount } = category;
+
   return (
     <article className="flex flex-col gap-5 rounded-xl border border-border bg-white p-6">
       <header className="flex items-start justify-between gap-2">
@@ -84,7 +84,7 @@ const CategoryCard = React.memo(function CategoryCard({
       <footer className="flex items-center justify-between gap-2">
         <Tag color={category.color}>{category.name}</Tag>
         <span className="text-sm text-gray-600">
-          {itemCount} {itemCount === 1 ? "item" : "itens"}
+          {transactionCount} {transactionCount === 1 ? "item" : "itens"}
         </span>
       </footer>
     </article>
@@ -92,21 +92,10 @@ const CategoryCard = React.memo(function CategoryCard({
 });
 
 export default function CategoriesPage() {
-  const { categories, transactions } = useFinance();
-  const dispatch = useFinanceDispatch();
+  const { categories, isPending } = useCategories();
+  const { mutate: deleteCategory } = useDeleteCategory();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
-
-  const itemCountByCategory = React.useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const transaction of transactions) {
-      counts.set(
-        transaction.categoryId,
-        (counts.get(transaction.categoryId) ?? 0) + 1,
-      );
-    }
-    return counts;
-  }, [transactions]);
 
   const sortedCategories = React.useMemo(
     () =>
@@ -114,20 +103,22 @@ export default function CategoriesPage() {
     [categories],
   );
 
+  const totalTransactions = React.useMemo(
+    () => categories.reduce((total, category) => total + category.transactionCount, 0),
+    [categories],
+  );
+
   const mostUsedCategory = React.useMemo(() => {
     let best: Category | null = null;
-    let bestCount = -1;
 
     for (const category of sortedCategories) {
-      const count = itemCountByCategory.get(category.id) ?? 0;
-      if (count > bestCount) {
+      if (!best || category.transactionCount > best.transactionCount) {
         best = category;
-        bestCount = count;
       }
     }
 
     return best;
-  }, [sortedCategories, itemCountByCategory]);
+  }, [sortedCategories]);
 
   const handleEdit = React.useCallback((category: Category) => {
     setEditingCategory(category);
@@ -135,10 +126,8 @@ export default function CategoriesPage() {
   }, []);
 
   const handleDelete = React.useCallback(
-    (id: string) => {
-      dispatch({ type: "category/removed", payload: { id } });
-    },
-    [dispatch],
+    (id: string) => deleteCategory(id),
+    [deleteCategory],
   );
 
   function handleCreate() {
@@ -167,12 +156,12 @@ export default function CategoriesPage() {
       <section className="flex gap-6">
         <StatCard
           icon={TagIcon}
-          value={String(categories.length)}
+          value={isPending ? "—" : String(categories.length)}
           label="total de categorias"
         />
         <StatCard
           icon={ArrowUpDown}
-          value={String(transactions.length)}
+          value={isPending ? "—" : String(totalTransactions)}
           label="total de transações"
         />
         <StatCard
@@ -181,17 +170,22 @@ export default function CategoriesPage() {
           label="categoria mais utilizada"
         />
       </section>
-      <section className="grid grid-cols-4 gap-4">
-        {sortedCategories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            category={category}
-            itemCount={itemCountByCategory.get(category.id) ?? 0}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        ))}
-      </section>
+      {!isPending && sortedCategories.length === 0 ? (
+        <p className="rounded-xl border border-border bg-white px-6 py-10 text-center text-sm text-gray-500">
+          Nenhuma categoria cadastrada
+        </p>
+      ) : (
+        <section className="grid grid-cols-4 gap-4">
+          {sortedCategories.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </section>
+      )}
       <CategoryDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}

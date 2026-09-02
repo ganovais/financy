@@ -13,7 +13,8 @@ import { CategoryIconBox } from "@/components/category-icon";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Tag } from "@/components/ui/tag";
 import { TextLink } from "@/components/ui/text-link";
-import { useCategoryById, useFinance } from "@/lib/finance-context";
+import { useCategoryById } from "@/hooks/use-categories";
+import { useTransactions } from "@/hooks/use-transactions";
 import {
   formatCurrency,
   formatShortDate,
@@ -98,7 +99,7 @@ const RecentTransactionRow = React.memo(function RecentTransactionRow({
 });
 
 export default function DashboardPage() {
-  const { transactions } = useFinance();
+  const { transactions, isPending } = useTransactions();
   const getCategoryById = useCategoryById();
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
@@ -157,25 +158,27 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [transactions, getCategoryById]);
 
+  const summaryValue = (cents: number) => (isPending ? "—" : formatCurrency(cents));
+
   return (
     <div className="grid grid-cols-3 items-start gap-6">
       <SummaryCard
         icon={Wallet}
         iconClassName="text-purple-base"
         label="Saldo total"
-        value={formatCurrency(summary.balance)}
+        value={summaryValue(summary.balance)}
       />
       <SummaryCard
         icon={CircleArrowUp}
         iconClassName="text-brand"
         label="Receitas do mês"
-        value={formatCurrency(summary.monthIncome)}
+        value={summaryValue(summary.monthIncome)}
       />
       <SummaryCard
         icon={CircleArrowDown}
         iconClassName="text-red-base"
         label="Despesas do mês"
-        value={formatCurrency(summary.monthExpense)}
+        value={summaryValue(summary.monthExpense)}
       />
       <section className="col-span-2 overflow-hidden rounded-xl border border-border bg-white">
         <header className="flex items-center justify-between border-b border-border py-5 pr-3 pl-6">
@@ -187,15 +190,21 @@ export default function DashboardPage() {
             </Link>
           </TextLink>
         </header>
-        <ul>
-          {recentTransactions.map((transaction) => (
-            <RecentTransactionRow
-              key={transaction.id}
-              transaction={transaction}
-              category={getCategoryById(transaction.categoryId)}
-            />
-          ))}
-        </ul>
+        {!isPending && recentTransactions.length === 0 ? (
+          <p className="border-b border-border px-6 py-10 text-center text-sm text-gray-500">
+            Nenhuma transação registrada
+          </p>
+        ) : (
+          <ul>
+            {recentTransactions.map((transaction) => (
+              <RecentTransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                category={getCategoryById(transaction.categoryId)}
+              />
+            ))}
+          </ul>
+        )}
         <footer className="flex items-center justify-center px-6 py-5">
           <TextLink onClick={() => setDialogOpen(true)}>
             <Plus aria-hidden />
@@ -213,19 +222,25 @@ export default function DashboardPage() {
             </Link>
           </TextLink>
         </header>
-        <ul className="flex flex-col gap-5 p-6">
-          {topExpenseCategories.map(({ category, count, totalInCents }) => (
-            <li key={category!.id} className="flex items-center gap-1">
-              <Tag color={category!.color}>{category!.name}</Tag>
-              <span className="min-w-0 flex-1 text-right text-sm text-gray-600">
-                {count} {count === 1 ? "item" : "itens"}
-              </span>
-              <span className="w-[88px] text-right text-sm font-semibold text-gray-800">
-                {formatCurrency(totalInCents)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {!isPending && topExpenseCategories.length === 0 ? (
+          <p className="px-6 py-10 text-center text-sm text-gray-500">
+            Nenhuma despesa registrada
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-5 p-6">
+            {topExpenseCategories.map(({ category, count, totalInCents }) => (
+              <li key={category!.id} className="flex items-center gap-1">
+                <Tag color={category!.color}>{category!.name}</Tag>
+                <span className="min-w-0 flex-1 text-right text-sm text-gray-600">
+                  {count} {count === 1 ? "item" : "itens"}
+                </span>
+                <span className="w-[88px] text-right text-sm font-semibold text-gray-800">
+                  {formatCurrency(totalInCents)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
       <TransactionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>

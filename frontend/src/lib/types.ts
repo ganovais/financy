@@ -37,6 +37,7 @@ export interface Category {
   description: string;
   color: CategoryColor;
   icon: CategoryIcon;
+  transactionCount: number;
 }
 
 export const TRANSACTION_TYPES = ["income", "expense"] as const;
@@ -53,6 +54,7 @@ export interface Transaction {
 }
 
 export interface User {
+  id: string;
   name: string;
   email: string;
 }

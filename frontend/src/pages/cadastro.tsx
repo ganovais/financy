@@ -15,9 +15,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input, InputAdornment, InputRoot } from "@/components/ui/input";
+import { useRegister } from "@/hooks/use-auth-mutations";
+import { useAuth } from "@/lib/auth-context";
 
 const signUpSchema = z.object({
-  name: z.string().min(3, "Informe seu nome completo"),
+  name: z.string().trim().min(3, "Informe seu nome completo"),
   email: z.email("Informe um e-mail válido"),
   password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres"),
 });
@@ -26,14 +28,20 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
+  const register = useRegister();
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
 
-  async function handleSignUp() {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    navigate("/dashboard");
+  function handleSignUp(data: SignUpFormValues) {
+    register.mutate(data, {
+      onSuccess: (result) => {
+        signIn(result.register);
+        navigate("/", { replace: true });
+      },
+    });
   }
 
   return (
@@ -114,7 +122,7 @@ export default function SignUpPage() {
               )}
             />
           </div>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button type="submit" disabled={register.isPending}>
             Cadastrar
           </Button>
           <div className="flex items-center gap-3">

@@ -22,11 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Tag } from "@/components/ui/tag";
 import { TransactionTypeIndicator } from "@/components/ui/transaction-type";
-import {
-  useCategoryById,
-  useFinance,
-  useFinanceDispatch,
-} from "@/lib/finance-context";
+import { useCategories, useCategoryById } from "@/hooks/use-categories";
+import { useDeleteTransaction, useTransactions } from "@/hooks/use-transactions";
 import {
   formatMonthLabel,
   formatShortDate,
@@ -95,9 +92,10 @@ const TransactionRow = React.memo(function TransactionRow({
 });
 
 export default function TransactionsPage() {
-  const { transactions, categories } = useFinance();
-  const dispatch = useFinanceDispatch();
+  const { transactions, isPending } = useTransactions();
+  const { categories } = useCategories();
   const getCategoryById = useCategoryById();
+  const { mutate: deleteTransaction } = useDeleteTransaction();
 
   const [search, setSearch] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("all");
@@ -145,10 +143,8 @@ export default function TransactionsPage() {
   }, []);
 
   const handleDelete = React.useCallback(
-    (id: string) => {
-      dispatch({ type: "transaction/removed", payload: { id } });
-    },
-    [dispatch],
+    (id: string) => deleteTransaction(id),
+    [deleteTransaction],
   );
 
   function handleCreate() {
@@ -280,7 +276,7 @@ export default function TransactionsPage() {
           </ul>
         ) : (
           <p className="border-b border-border px-6 py-10 text-center text-sm text-gray-500">
-            Nenhuma transação encontrada
+            {isPending ? "Carregando transações…" : "Nenhuma transação encontrada"}
           </p>
         )}
         <footer className="flex items-center justify-between px-6 py-5">

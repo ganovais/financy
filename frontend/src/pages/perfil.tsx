@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LogOut, Mail, UserRound } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,9 @@ import {
   InputAdornment,
   InputRoot,
 } from "@/components/ui/input";
+import { useUpdateProfile } from "@/hooks/use-auth-mutations";
+import { useAuth, useUser } from "@/lib/auth-context";
 import { getInitials } from "@/lib/format";
-import { mockUser } from "@/lib/mock-data";
 
 const profileSchema = z.object({
   name: z.string().trim().min(3, "Informe seu nome completo"),
@@ -32,16 +34,26 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const user = useUser();
+  const { signOut } = useAuth();
+  const updateProfile = useUpdateProfile();
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: mockUser.name },
+    defaultValues: { name: user.name },
   });
 
   const currentName = useWatch({ control: form.control, name: "name" });
 
-  async function handleSave(values: ProfileFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    form.reset(values);
+  function handleSave(values: ProfileFormValues) {
+    updateProfile.mutate(values, {
+      onSuccess: (result) => form.reset({ name: result.updateProfile.name }),
+    });
+  }
+
+  function handleSignOut() {
+    signOut();
+    toast.info("Você saiu da conta");
+    navigate("/", { replace: true });
   }
 
   return (
@@ -49,13 +61,13 @@ export default function ProfilePage() {
       <section className="flex w-full max-w-md flex-col gap-8 rounded-xl border border-border bg-white p-8">
         <header className="flex flex-col items-center gap-6">
           <span className="flex size-16 items-center justify-center rounded-full bg-gray-300 text-2xl leading-10 font-medium text-gray-800">
-            {getInitials(currentName || mockUser.name)}
+            {getInitials(currentName || user.name)}
           </span>
           <div className="flex flex-col gap-0.5 text-center">
             <h1 className="text-xl leading-7 font-semibold text-gray-800">
-              {currentName || mockUser.name}
+              {currentName || user.name}
             </h1>
-            <p className="text-base text-gray-500">{mockUser.email}</p>
+            <p className="text-base text-gray-500">{user.email}</p>
           </div>
         </header>
         <hr className="border-border" />
@@ -93,7 +105,7 @@ export default function ProfilePage() {
                   <Input
                     id="profile-email"
                     type="email"
-                    value={mockUser.email}
+                    value={user.email}
                     disabled
                     readOnly
                   />
@@ -102,13 +114,10 @@ export default function ProfilePage() {
               </Field>
             </div>
             <div className="flex flex-col gap-4">
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={updateProfile.isPending}>
                 Salvar alterações
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/login")}
-              >
+              <Button variant="outline" onClick={handleSignOut}>
                 <LogOut aria-hidden />
                 Sair da conta
               </Button>

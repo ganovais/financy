@@ -28,7 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useFinance, useFinanceDispatch } from "@/lib/finance-context";
+import { useCategories } from "@/hooks/use-categories";
+import {
+  useCreateTransaction,
+  useUpdateTransaction,
+} from "@/hooks/use-transactions";
 import { formatCurrency, parseCurrencyInput } from "@/lib/format";
 import type { Transaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -96,9 +100,11 @@ export function TransactionDialog({
   onOpenChange,
   transaction,
 }: TransactionDialogProps) {
-  const { categories } = useFinance();
-  const dispatch = useFinanceDispatch();
+  const { categories } = useCategories();
+  const createTransaction = useCreateTransaction();
+  const updateTransaction = useUpdateTransaction();
   const isEditing = !!transaction;
+  const isPending = createTransaction.isPending || updateTransaction.isPending;
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -110,24 +116,20 @@ export function TransactionDialog({
   }, [open, transaction, form]);
 
   function handleSave(values: TransactionFormValues) {
-    const payload = {
-      description: values.description.trim(),
+    const data = {
+      description: values.description,
       date: values.date,
       amountInCents: parseCurrencyInput(values.amount) ?? 0,
       type: values.type,
       categoryId: values.categoryId,
     };
+    const options = { onSuccess: () => onOpenChange(false) };
 
     if (transaction) {
-      dispatch({
-        type: "transaction/updated",
-        payload: { ...payload, id: transaction.id },
-      });
+      updateTransaction.mutate({ id: transaction.id, data }, options);
     } else {
-      dispatch({ type: "transaction/added", payload });
+      createTransaction.mutate(data, options);
     }
-
-    onOpenChange(false);
   }
 
   return (
@@ -282,7 +284,9 @@ export function TransactionDialog({
                 )}
               />
             </div>
-            <Button type="submit">Salvar</Button>
+            <Button type="submit" disabled={isPending}>
+              Salvar
+            </Button>
           </form>
         </Form>
       </DialogContent>

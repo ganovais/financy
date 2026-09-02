@@ -21,7 +21,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input, InputRoot } from "@/components/ui/input";
-import { useFinanceDispatch } from "@/lib/finance-context";
+import { useCreateCategory, useUpdateCategory } from "@/hooks/use-categories";
 import {
   CATEGORY_COLORS,
   CATEGORY_ICONS,
@@ -79,8 +79,10 @@ const colorLabels: Record<CategoryColor, string> = {
 };
 
 export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
-  const dispatch = useFinanceDispatch();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
   const isEditing = !!category;
+  const isPending = createCategory.isPending || updateCategory.isPending;
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
@@ -92,20 +94,13 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
   }, [open, category, form]);
 
   function handleSave(values: CategoryFormValues) {
-    const payload = {
-      name: values.name.trim(),
-      description: values.description.trim(),
-      icon: values.icon,
-      color: values.color,
-    };
+    const options = { onSuccess: () => onOpenChange(false) };
 
     if (category) {
-      dispatch({ type: "category/updated", payload: { ...payload, id: category.id } });
+      updateCategory.mutate({ id: category.id, data: values }, options);
     } else {
-      dispatch({ type: "category/added", payload });
+      createCategory.mutate(values, options);
     }
-
-    onOpenChange(false);
   }
 
   return (
@@ -239,7 +234,9 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 )}
               />
             </div>
-            <Button type="submit">Salvar</Button>
+            <Button type="submit" disabled={isPending}>
+              Salvar
+            </Button>
           </form>
         </Form>
       </DialogContent>
